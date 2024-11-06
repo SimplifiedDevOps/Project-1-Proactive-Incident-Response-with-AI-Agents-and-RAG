@@ -1,23 +1,32 @@
 # agent_server.py
 
 from flask import Flask, request, jsonify
-from incidents.incident_processor import handle_new_incident
+from ai_agent.agent import handle_incident_with_agent
+from ai_agent.incident_followup_chain import handle_followup_with_chain
 
 app = Flask(__name__)
 
 @app.route('/incident_alert', methods=['POST'])
 def incident_alert():
-    # Receive the alert data sent by Alertmanager
     alert_data = request.json  # Extract alert data
-
-    # Access the description from the alert annotations
     incident_description = alert_data["alerts"][0]["annotations"]["description"]
     
-    # Process the incident with the AI agent to find similar incidents
-    similar_incidents = handle_new_incident(incident_description)
+    # Initial incident processing and suggestion
+    initial_response = handle_incident_with_agent(incident_description)
     
-    # Respond back with the status and any similar incidents found
-    return jsonify({"status": "received", "similar_incidents": similar_incidents})
+    return jsonify({"status": "received", "response": initial_response})
+
+@app.route('/incident_followup_chain', methods=['POST'])
+def incident_followup_chain():
+    # Handle multi-step follow-up with LangChain chain
+    data = request.json
+    incident_description = data.get("incident_description")
+    additional_notes = data.get("additional_notes", "")
+    
+    # Execute the multi-step follow-up chain
+    followup_response = handle_followup_with_chain(incident_description, additional_notes)
+    
+    return jsonify({"status": "followup_chain_executed", "response": followup_response})
 
 if __name__ == "__main__":
     app.run(port=5000)
