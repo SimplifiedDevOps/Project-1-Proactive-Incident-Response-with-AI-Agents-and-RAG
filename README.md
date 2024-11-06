@@ -99,6 +99,7 @@ stage('Monitor for Incidents') {
         }
     }
 }
+```
 
 ## Stage 4: Automating Incident Data Collection and RAG Embedding
 
@@ -122,6 +123,7 @@ Here’s an example of how the scheduler is set to run every 24 hours:
 schedule.every(24).hours.do(update_pinecone_with_recent_incidents)
 while True:
     schedule.run_pending()
+```
 
 ## Stage 5: Testing and Continuous Learning
 
@@ -153,6 +155,7 @@ stage('Operator Feedback') {
         }
     }
 }
+```
 
 ## Feedback Loop for Continuous Improvement
 
