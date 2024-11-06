@@ -1,0 +1,12 @@
+# prometheus.yml
+global:
+  scrape_interval: 15s  # How often Prometheus scrapes metrics
+
+scrape_configs:
+  - job_name: 'java_login_app'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['localhost:8080']  # Replace with the target's address and port
+
+rule_files:
+  - "alert.rules.yml"

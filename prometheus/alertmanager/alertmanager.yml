@@ -1,0 +1,8 @@
+# alertmanager.yml
+route:
+  receiver: "ai-agent"
+
+receivers:
+  - name: "ai-agent"
+    webhook_configs:
+      - url: "http://localhost:5000/incident_alert"  # Example endpoint for AI agent
