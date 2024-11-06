@@ -1,0 +1,101 @@
+pipeline {
+  agent any
+  tools {
+  
+  maven 'maven'
+   
+  }
+    stages {
+
+      stage ('Checkout SCM'){
+        steps {
+          checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'git', url: 'https://SimplifiedDevOps@bitbucket.org/simplifieddevops/devopsdashboard.git']]])
+        }
+      }
+	  
+	  stage ('Build')  {
+	      steps {
+          
+            dir('java-source'){
+            sh "mvn package"
+          }
+        }
+         
+      }
+   
+     stage ('SonarQube Analysis') {
+        steps {
+              withSonarQubeEnv('sonar') {
+                
+				dir('java-source'){
+                 sh 'mvn verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar'
+                }
+				
+              }
+            }
+      }
+
+    stage ('Artifactory configuration') {
+            steps {
+                rtServer (
+                    id: "jfrog",
+                    url: "https://simplifieddevops.jfrog.io/artifactory",
+                    credentialsId: "jfrog"
+                )
+
+                rtMavenDeployer (
+                    id: "MAVEN_DEPLOYER",
+                    serverId: "jfrog",
+                    releaseRepo: "javalogin-libs-release-local",
+                    snapshotRepo: "javalogin"
+                )
+
+                rtMavenResolver (
+                    id: "MAVEN_RESOLVER",
+                    serverId: "jfrog",
+                    releaseRepo: "default-maven-virtual",
+                    snapshotRepo: "default-maven-virtual"
+                )
+            }
+    }
+
+    stage ('Deploy Artifacts') {
+            steps {
+                rtMavenRun (
+                    tool: "maven", // Tool name from Jenkins configuration
+                    pom: 'javaloginapp-source-code/pom.xml',
+                    goals: 'clean install',
+                    deployerId: "MAVEN_DEPLOYER",
+                    resolverId: "MAVEN_RESOLVER"
+                )
+         }
+    }
+
+    stage ('Publish build info') {
+            steps {
+                rtPublishBuildInfo (
+                    serverId: "jfrog"
+             )
+        }
+    }
+    stage('Build Container Image') {
+            
+            steps {
+              sh "ansible-playbook create-container-image.yaml"       
+            }
+            
+        } 
+
+    stage('Build Helm Charts') {
+            
+            steps {
+              dir('helmcharts') {
+             sh "/usr/bin/helm package javaloginapp"
+	     sh "sudo /usr/bin/helm push-artifactory --username avardhineni7@gmail.com --password mko09ijN javaloginapp-0.0.1.tgz https://simplifieddevops.jfrog.io/artifactory/mobile-helm-local"
+					  }
+          }
+            
+        } 
+         
+   } 
+}

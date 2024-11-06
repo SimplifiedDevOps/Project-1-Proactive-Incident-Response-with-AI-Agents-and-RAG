@@ -1,0 +1,12 @@
+# nameOverride: java-login-app
+
+# meta information. This data is used by operations to identify the deployed
+# artifacts
+meta:
+  organization: "javalogin"
+  team: "javalogin-web"
+  product: "javaloginapp"
+
+deployment:
+  replicaCount: 1
+  

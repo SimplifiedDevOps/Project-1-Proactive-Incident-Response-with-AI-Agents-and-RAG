@@ -1,0 +1,17 @@
+#Service Type nodePort
+apiVersion: v1
+kind: Service
+metadata:
+  name: javalogin-service
+  namespace: dev
+  labels:
+    app: javalogin-app
+spec:
+  selector:
+    app: javalogin-app
+
+  type: NodePort
+  ports:
+  - nodePort: {{ .Values.service.nodeport }}
+    port: {{ .Values.service.port }}
+    targetPort: {{ .Values.service.targetPort }}

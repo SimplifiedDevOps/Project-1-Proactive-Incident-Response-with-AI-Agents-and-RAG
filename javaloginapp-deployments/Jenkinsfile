@@ -1,0 +1,35 @@
+pipeline {
+
+  environment {
+    label = "deploy-javaloginapp"
+    namespace = "Dev"
+    environ = "Dev"
+  }
+  agent any
+
+    stages {
+
+      stage ('Checkout SCM'){
+        steps {
+          checkout([$class: 'GitSCM', branches: [[name: '*/Dev']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'git', url: 'git clone https://SimplifiedDevOps@bitbucket.org/simplifieddevops/devopsdashboard.git']]])
+        }
+      }
+	  
+	  stage ('Deploy Helm Charts')  {
+	      steps {
+           sh "sudo /usr/local/bin/helm version"
+          
+           dir("javaloginapp"){
+                    sh 'pwd'
+                    sh 'ls -l'
+                    sh "sudo /usr/local/bin/helm repo add javaloginapp-helm https://simplifieddevops.jfrog.io/artifactory/api/helm/javaloginapp-helm --username avardhineni7@gmail.com --password *******"
+                    sh "sudo /usr/local/bin/helm repo update"
+                    sh "sudo /usr/local/bin/helm upgrade javaloginapp-${environ} --install -f values.yaml --namespace ${namespace}  --force ."
+                    sh "sudo /usr/local/bin/helm list -a --namespace ${namespace}"
+                }
+        }
+         
+      }
+         
+   } 
+}
