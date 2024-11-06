@@ -1,0 +1,21 @@
+# alert.rules.yml
+groups:
+  - name: java_login_app_alerts
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status="500"}[5m]) > 0.05
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          description: "The error rate is above 5% for the past minute."
+
+      - alert: ServiceDown
+        expr: up{job="java_login_app"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Java login app is down"
+          description: "The Java login application is not responding for more than 5 minutes."
