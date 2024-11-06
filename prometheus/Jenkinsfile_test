@@ -1,0 +1,53 @@
+pipeline {
+    agent any
+
+    environment {
+        INCIDENT_RESPONSE_AGENT_URL = 'http://localhost:5000/incident_alert'
+    }
+
+    stages {
+        stage('Test Simulated Failure') {
+            steps {
+                script {
+                    echo 'Simulating a failure in the Jenkins pipeline...'
+                    error 'Deliberate error to trigger incident response'
+                }
+            }
+        }
+
+        stage('Send Alert to AI Agent') {
+            steps {
+                script {
+                    def incidentDescription = "Simulated failure detected in Jenkins test stage."
+                    def payload = [
+                        alerts: [
+                            [
+                                annotations: [
+                                    description: incidentDescription
+                                ]
+                            ]
+                        ]
+                    ]
+
+                    // Send alert to AI Agent
+                    httpRequest(
+                        acceptType: 'APPLICATION_JSON',
+                        contentType: 'APPLICATION_JSON',
+                        httpMode: 'POST',
+                        requestBody: new groovy.json.JsonBuilder(payload).toString(),
+                        url: env.INCIDENT_RESPONSE_AGENT_URL
+                    )
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Testing pipeline completed.'
+        }
+        failure {
+            echo 'Pipeline failed as expected for test.'
+        }
+    }
+}

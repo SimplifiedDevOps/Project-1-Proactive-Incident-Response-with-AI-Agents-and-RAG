@@ -1,0 +1,152 @@
+pipeline {
+    agent any
+
+    environment {
+        INCIDENT_RESPONSE_AGENT_URL = 'http://localhost:5000/incident_alert'
+        RESOLUTION_ENDPOINT_URL = 'http://localhost:5000/execute_resolution'
+        FEEDBACK_ENDPOINT_URL = 'http://localhost:5000/feedback'
+    }
+
+    stages {
+        stage('Test Simulated Failure') {
+            steps {
+                script {
+                    echo 'Simulating a failure in the Jenkins pipeline...'
+                    error 'Deliberate error to trigger incident response'
+                }
+            }
+        }
+
+        stage('Send Alert to AI Agent') {
+            steps {
+                script {
+                    def incidentDescription = "Simulated failure detected in Jenkins test stage."
+                    def payload = [
+                        alerts: [
+                            [
+                                annotations: [
+                                    description: incidentDescription
+                                ]
+                            ]
+                        ]
+                    ]
+
+                    // Send alert to AI Agent
+                    httpRequest(
+                        acceptType: 'APPLICATION_JSON',
+                        contentType: 'APPLICATION_JSON',
+                        httpMode: 'POST',
+                        requestBody: new groovy.json.JsonBuilder(payload).toString(),
+                        url: env.INCIDENT_RESPONSE_AGENT_URL
+                    )
+                }
+            }
+        }
+
+        stage('Monitor for Incidents') {
+            steps {
+                echo 'Monitoring stages for incidents...'
+                
+                // Sample function that checks for incident status (could be an actual check)
+                script {
+                    def incidentDetected = checkForIncident()
+                    if (incidentDetected) {
+                        def incidentDescription = "Deployment failed for Production environment"
+                        def resolutionAttempted = sendIncidentAlertAndResolution(incidentDescription)
+                        
+                        if (resolutionAttempted == "success") {
+                            echo "Resolution was successfully applied by AI agent."
+                        } else {
+                            echo "Resolution attempt failed. Manual intervention required."
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Operator Feedback') {
+            steps {
+                script {
+                    // Request feedback text and rating from the operator
+                    def feedbackResponse = input(id: 'Feedback', message: 'Provide feedback on the incident resolution:', parameters: [
+                        string(name: 'feedbackText', description: 'Enter feedback here.'),
+                        choice(name: 'rating', choices: '1\n2\n3\n4\n5', description: 'Rate the resolution (1 = Poor, 5 = Excellent)')
+                    ])
+
+                    def incidentId = "generated-incident-id"  // Replace with actual ID if available
+                    
+                    // Send feedback to the AI agent
+                    sendFeedbackToAgent(incidentId, feedbackResponse['feedbackText'], feedbackResponse['rating'])
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Monitoring pipeline completed.'
+        }
+        failure {
+            echo 'Monitoring pipeline encountered errors.'
+        }
+    }
+}
+
+def checkForIncident() {
+    // Placeholder function to simulate incident detection.
+    // Replace with actual incident check logic.
+    return true
+}
+
+def sendIncidentAlertAndResolution(String description) {
+    // Prepare JSON payload for incident alert
+    def payload = [
+        alerts: [
+            [
+                annotations: [
+                    description: description
+                ]
+            ]
+        ]
+    ]
+    
+    // Send an alert to the AI incident response agent
+    def incidentResponse = httpRequest(
+        acceptType: 'APPLICATION_JSON',
+        contentType: 'APPLICATION_JSON',
+        httpMode: 'POST',
+        requestBody: new groovy.json.JsonBuilder(payload).toString(),
+        url: env.INCIDENT_RESPONSE_AGENT_URL
+    )
+
+    // Trigger AI agent resolution via a dedicated endpoint
+    def resolutionResponse = httpRequest(
+        acceptType: 'APPLICATION_JSON',
+        contentType: 'APPLICATION_JSON',
+        httpMode: 'POST',
+        requestBody: new groovy.json.JsonBuilder(payload).toString(),
+        url: env.RESOLUTION_ENDPOINT_URL
+    )
+
+    // Check resolution status
+    def resolutionStatus = new groovy.json.JsonSlurper().parseText(resolutionResponse.content).status
+    return resolutionStatus == "success" ? "success" : "failure"
+}
+
+def sendFeedbackToAgent(String incidentId, String feedbackText, String rating) {
+    // Prepare JSON payload for feedback
+    def feedbackPayload = [
+        incident_id: incidentId,
+        feedback_text: feedbackText,
+        rating: rating
+    ]
+
+    // Send feedback to AI agent for learning
+    httpRequest(
+        acceptType: 'APPLICATION_JSON',
+        contentType: 'APPLICATION_JSON',
+        httpMode: 'POST',
+        requestBody: new groovy.json.JsonBuilder(feedbackPayload).toString(),
+        url: env.FEEDBACK_ENDPOINT_URL
+    )
+}
