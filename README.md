@@ -1,4 +1,4 @@
-# Project-1-Proactive-Incident-Response-with-AI-Agents-and-
+# Project-1-Proactive-Incident-Response-with-AI-Agents-and-RAG
 # Incident Response and Continuous Learning Pipeline
 
 This project implements a proactive incident response pipeline integrated with an AI agent and continuous learning features. The setup allows for automated incident detection, resolution, operator feedback, and adaptive learning to improve response accuracy over time.
